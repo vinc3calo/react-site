@@ -6,6 +6,7 @@ import MissionBriefing from '../components/MissionBriefing';
 import StartScreen from '../components/StartScreen';
 import MissionComplete from "../components/MissionComplete";
 import { getActivePhase } from "../utils/getActivePhase";
+import { migrateProgress } from "../utils/migrateProgress";
 
 export default function MissionEngine() {
   const {
@@ -30,9 +31,13 @@ export default function MissionEngine() {
     return <div>Loading mission...</div>;
   }
 
+  const safeProgress = migrateProgress(progress, currentLevel.id);
+
+  const levelProgress = safeProgress.levels[currentLevel.id];
+
   const activePhaseId = getActivePhase(
     currentLevel.phases,
-    progress
+    levelProgress
   );
 
   if (activePhaseId === "completed") {

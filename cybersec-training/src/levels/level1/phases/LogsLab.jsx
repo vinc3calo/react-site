@@ -7,16 +7,19 @@ export default function LogsLab() {
     user,
     progress,
     setProgress,
-    nextPhase
+    nextPhase,
+    currentLevel
   } = useMission();
+
+  const levelId = currentLevel.id;
 
   const [input, setInput] = useState("");
   const [locked, setLocked] = useState(false);
 
-  // ✅ NEW: tracking
+  // ✅ tracking
   const startTimeRef = useRef(Date.now());
   const [attempts, setAttempts] = useState(
-    progress?.phases?.logs?.attempts || 0
+    progress?.levels?.[levelId]?.phases?.logs?.attempts || 0
   );
 
   const handleSubmit = () => {
@@ -33,11 +36,16 @@ export default function LogsLab() {
 
       const updatedProgress = {
         ...progress,
-        phases: {
-          ...(progress.phases || {}),
-          logs: {
-            ...(progress.phases?.logs || {}),
-            attempts: newAttempts
+        levels: {
+          ...(progress.levels || {}),
+          [levelId]: {
+            phases: {
+              ...(progress.levels?.[levelId]?.phases || {}),
+              logs: {
+                ...(progress.levels?.[levelId]?.phases?.logs || {}),
+                attempts: newAttempts
+              }
+            }
           }
         }
       };
@@ -54,7 +62,7 @@ export default function LogsLab() {
     }
 
     // ✅ CORRECT ANSWER
-    setLocked(true); // prevent double trigger
+    setLocked(true);
 
     const timeTaken = Math.floor(
       (Date.now() - startTimeRef.current) / 1000
@@ -71,14 +79,19 @@ export default function LogsLab() {
 
     const updatedProgress = {
       ...progress,
-      phases: {
-        ...(progress.phases || {}),
-        logs: {
-          completed: true,
-          correct: true,
-          attempts: newAttempts,
-          timeTaken,
-          score
+      levels: {
+        ...(progress.levels || {}),
+        [levelId]: {
+          phases: {
+            ...(progress.levels?.[levelId]?.phases || {}),
+            logs: {
+              completed: true,
+              correct: true,
+              attempts: newAttempts,
+              timeTaken,
+              score
+            }
+          }
         }
       }
     };
@@ -93,7 +106,6 @@ export default function LogsLab() {
       progress: updatedProgress
     });
 
-    // ⚠️ optional (remove later if fully state-driven)
     setTimeout(() => {
       nextPhase();
     }, 1000);

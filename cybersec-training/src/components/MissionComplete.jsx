@@ -3,7 +3,12 @@ import { useMission } from "../context/MissionContext";
 export default function MissionComplete({ level }) {
   const { progress, setCurrentLevel } = useMission();
 
-  const phases = Object.values(progress?.phases || []);
+  const levelId = level.id;
+
+  // ✅ get ONLY current level phases
+  const phases = Object.values(
+    progress?.levels?.[levelId]?.phases || {}
+  );
 
   const totalScore = phases.reduce(
     (sum, p) => sum + (p.score || 0),
@@ -23,7 +28,7 @@ export default function MissionComplete({ level }) {
   };
 
   const handleNextLevel = () => {
-    // 👉 switch level (we’ll define level2 next)
+    // ⚠️ temporary (we'll fix properly when adding level2)
     setCurrentLevel("level2");
   };
 
@@ -39,7 +44,7 @@ export default function MissionComplete({ level }) {
       </div>
 
       <button onClick={handleNextLevel}>
-        Proceed to Level 2
+        Proceed to Level 2 →
       </button>
     </div>
   );

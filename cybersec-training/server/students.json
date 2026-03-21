@@ -1,29 +1,6 @@
 {
-  "LogPost": {
-    "name": "LogPost",
-    "currentPhase": "password",
-    "progress": {
-      "phases": {
-        "phishing": {
-          "completed": true,
-          "correct": true,
-          "attempts": 1,
-          "timeTaken": 3,
-          "score": 129
-        },
-        "password": {
-          "completed": true,
-          "correct": true,
-          "attempts": 1,
-          "timeTaken": 6,
-          "score": 124
-        }
-      }
-    },
-    "lastActive": 1774075759665
-  },
-  "CyberStorm": {
-    "name": "CyberStorm",
+  "JellyAce": {
+    "name": "JellyAce",
     "currentPhase": "incident",
     "progress": {
       "phases": {
@@ -38,22 +15,15 @@
           "completed": true,
           "correct": true,
           "attempts": 1,
-          "timeTaken": 6,
-          "score": 124
-        },
-        "network": {
-          "completed": true,
-          "correct": true,
-          "attempts": 1,
-          "timeTaken": 4,
-          "score": 126
+          "timeTaken": 7,
+          "score": 123
         },
         "logs": {
           "completed": true,
           "correct": true,
           "attempts": 1,
-          "timeTaken": 7,
-          "score": 123
+          "timeTaken": 9,
+          "score": 121
         },
         "incident": {
           "completed": true,
@@ -62,45 +32,70 @@
           "timeTaken": 1,
           "score": 129
         }
-      }
-    },
-    "lastActive": 1774080286543
-  },
-  "SilentKill": {
-    "name": "SilentKill",
-    "currentPhase": "logs",
-    "progress": {
-      "phases": {
-        "phishing": {
-          "completed": true,
-          "correct": true,
-          "attempts": 1,
-          "timeTaken": 2,
-          "score": 129
-        },
-        "password": {
-          "completed": true,
-          "correct": true,
-          "attempts": 1,
-          "timeTaken": 7,
-          "score": 123
-        },
-        "network": {
-          "completed": true,
-          "correct": true,
-          "attempts": 1,
-          "timeTaken": 4,
-          "score": 126
-        },
-        "logs": {
-          "completed": true,
-          "correct": true,
-          "attempts": 1,
-          "timeTaken": 6,
-          "score": 124
+      },
+      "levels": {
+        "operation_shadow_entry": {
+          "phases": {
+            "network": {
+              "completed": true,
+              "correct": true,
+              "attempts": 1,
+              "timeTaken": 25,
+              "score": 105
+            }
+          }
         }
       }
     },
-    "lastActive": 1774075937517
+    "lastActive": 1774083079594
+  },
+  "SilentKilla": {
+    "name": "SilentKilla",
+    "currentPhase": "incident",
+    "progress": {
+      "phases": {},
+      "levels": {
+        "operation_shadow_entry": {
+          "phases": {
+            "phishing": {
+              "completed": true,
+              "correct": true,
+              "attempts": 1,
+              "timeTaken": 2,
+              "score": 129
+            },
+            "password": {
+              "completed": true,
+              "correct": true,
+              "attempts": 1,
+              "timeTaken": 5,
+              "score": 125
+            },
+            "network": {
+              "completed": true,
+              "correct": true,
+              "attempts": 1,
+              "timeTaken": 35,
+              "score": 100
+            },
+            "logs": {
+              "completed": true,
+              "correct": true,
+              "attempts": 1,
+              "timeTaken": 6,
+              "score": 124
+            },
+            "incident": {
+              "completed": true,
+              "correct": true,
+              "attempts": 1,
+              "timeTaken": 1,
+              "score": 129
+            }
+          }
+        }
+      }
+    },
+    "lastActive": 1774084252783
   }
 }

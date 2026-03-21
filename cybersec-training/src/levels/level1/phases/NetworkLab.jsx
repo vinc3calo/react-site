@@ -3,9 +3,11 @@ import { useMission } from '../../../context/MissionContext';
 import { socket } from '../../../core/socket';
 
 export default function NetworkLab() {
-  const { user, progress, setProgress, nextPhase } = useMission();
+  const { user, progress, setProgress, nextPhase, currentLevel } = useMission();
 
   const [input, setInput] = useState('');
+  
+  const levelId = currentLevel.id;
 
   // ✅ NEW: tracking
   const startTimeRef = useRef(Date.now());
@@ -23,11 +25,16 @@ export default function NetworkLab() {
 
       const updatedProgress = {
         ...progress,
-        phases: {
-          ...(progress.phases || {}),
-          network: {
-            ...(progress.phases?.network || {}),
-            attempts: newAttempts
+        levels: {
+          ...(progress.levels || {}),
+          [levelId]: {
+            phases: {
+              ...(progress.levels?.[levelId]?.phases || {}),
+              network: {
+                ...(progress.levels?.[levelId]?.phases?.network || {}),
+                attempts: newAttempts
+              }
+            }
           }
         }
       };
@@ -60,14 +67,19 @@ export default function NetworkLab() {
 
     const updatedProgress = {
       ...progress,
-      phases: {
-        ...(progress.phases || {}),
-        network: {
-          completed: true,
-          correct: true,
-          attempts: newAttempts,
-          timeTaken,
-          score
+      levels: {
+        ...(progress.levels || {}),
+        [levelId]: {
+          phases: {
+            ...(progress.levels?.[levelId]?.phases || {}),
+            network: {
+              completed: true,
+              correct: true,
+              attempts: newAttempts,
+              timeTaken,
+              score
+            }
+          }
         }
       }
     };

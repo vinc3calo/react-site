@@ -7,8 +7,11 @@ export default function PasswordLab() {
     user,
     progress,
     setProgress,
-    nextPhase // you can remove later if fully state-driven
+    nextPhase,
+    currentLevel
   } = useMission();
+
+  const levelId = currentLevel.id;
 
   const [hash] = useState('5f4dcc3b5aa765d61d8327deb882cf99');
   const [logs, setLogs] = useState('');
@@ -25,9 +28,11 @@ export default function PasswordLab() {
 
   const [feedback, setFeedback] = useState('');
 
-  // ✅ NEW: tracking
+  // ✅ tracking
   const startTimeRef = useRef(null);
-  const [attempts, setAttempts] = useState(0);
+  const [attempts, setAttempts] = useState(
+    progress?.levels?.[levelId]?.phases?.password?.attempts || 0
+  );
 
   const startCracking = async () => {
     setRunning(true);
@@ -37,7 +42,6 @@ export default function PasswordLab() {
     setAnswers({ attack: '', implication: '', action: '' });
     setFeedback('');
 
-    // ✅ start timer + attempts
     startTimeRef.current = Date.now();
     setAttempts(prev => prev + 1);
 
@@ -62,15 +66,11 @@ export default function PasswordLab() {
     let detectedPassword = null;
 
     let match = fullOutput.match(/:([^\s]+)/);
-    if (match) {
-      detectedPassword = match[1];
-    }
+    if (match) detectedPassword = match[1];
 
     if (!detectedPassword) {
       let altMatch = fullOutput.match(/\n([a-zA-Z0-9]+)\s+\(/);
-      if (altMatch) {
-        detectedPassword = altMatch[1];
-      }
+      if (altMatch) detectedPassword = altMatch[1];
     }
 
     if (detectedPassword) {
@@ -102,12 +102,10 @@ export default function PasswordLab() {
       return;
     }
 
-    // ✅ CALCULATE TIME
     const timeTaken = startTimeRef.current
       ? Math.floor((Date.now() - startTimeRef.current) / 1000)
       : 0;
 
-    // ✅ SCORING SYSTEM
     const basePoints = 100;
     const attemptPenalty = (attempts - 1) * 10;
     const speedBonus = Math.max(30 - timeTaken, 0);
@@ -116,14 +114,19 @@ export default function PasswordLab() {
 
     const updatedProgress = {
       ...progress,
-      phases: {
-        ...(progress.phases || {}),
-        password: {
-          completed: true,
-          correct: true,
-          attempts,
-          timeTaken,
-          score
+      levels: {
+        ...(progress.levels || {}),
+        [levelId]: {
+          phases: {
+            ...(progress.levels?.[levelId]?.phases || {}),
+            password: {
+              completed: true,
+              correct: true,
+              attempts,
+              timeTaken,
+              score
+            }
+          }
         }
       }
     };
@@ -131,14 +134,13 @@ export default function PasswordLab() {
     // ✅ update frontend
     setProgress(updatedProgress);
 
-    // ✅ send to backend
+    // ✅ backend sync
     socket.emit("progress_update", {
       user: user.name,
       phase: "password",
       progress: updatedProgress
     });
 
-    // ⚠️ optional (remove later if fully state-driven)
     nextPhase();
   };
 
@@ -160,7 +162,6 @@ export default function PasswordLab() {
       {crackedPassword && (
         <div className="success-panel" style={{ marginTop: '15px' }}>
           <h4>🔓 Credentials Compromised</h4>
-
           <p>
             Recovered Password: <strong>{crackedPassword}</strong>
           </p>

@@ -7,15 +7,19 @@ export default function ResponseLab() {
     user,
     progress,
     setProgress,
-    nextPhase
+    nextPhase,
+    currentLevel
   } = useMission();
+
+  const levelId = currentLevel.id;
 
   const [locked, setLocked] = useState(false);
 
-  // ✅ NEW: tracking
+  // ✅ tracking
   const startTimeRef = useRef(Date.now());
+
   const [attempts, setAttempts] = useState(
-    progress?.phases?.incident?.attempts || 0
+    progress?.levels?.[levelId]?.phases?.incident?.attempts || 0
   );
 
   const handleCorrect = () => {
@@ -24,7 +28,7 @@ export default function ResponseLab() {
     const newAttempts = attempts + 1;
     setAttempts(newAttempts);
 
-    setLocked(true); // prevent double trigger
+    setLocked(true);
 
     const timeTaken = Math.floor(
       (Date.now() - startTimeRef.current) / 1000
@@ -41,14 +45,19 @@ export default function ResponseLab() {
 
     const updatedProgress = {
       ...progress,
-      phases: {
-        ...(progress.phases || {}),
-        incident: {
-          completed: true,
-          correct: true,
-          attempts: newAttempts,
-          timeTaken,
-          score
+      levels: {
+        ...(progress.levels || {}),
+        [levelId]: {
+          phases: {
+            ...(progress.levels?.[levelId]?.phases || {}),
+            incident: {
+              completed: true,
+              correct: true,
+              attempts: newAttempts,
+              timeTaken,
+              score
+            }
+          }
         }
       }
     };
@@ -63,14 +72,13 @@ export default function ResponseLab() {
       progress: updatedProgress
     });
 
-    // ⚠️ optional (remove later if fully state-driven)
     setTimeout(() => {
       nextPhase();
     }, 1000);
   };
 
   const handleWrong = () => {
-    if (locked) return;
+    if (!user || locked) return;
 
     const newAttempts = attempts + 1;
     setAttempts(newAttempts);
@@ -79,11 +87,16 @@ export default function ResponseLab() {
 
     const updatedProgress = {
       ...progress,
-      phases: {
-        ...(progress.phases || {}),
-        incident: {
-          ...(progress.phases?.incident || {}),
-          attempts: newAttempts
+      levels: {
+        ...(progress.levels || {}),
+        [levelId]: {
+          phases: {
+            ...(progress.levels?.[levelId]?.phases || {}),
+            incident: {
+              ...(progress.levels?.[levelId]?.phases?.incident || {}),
+              attempts: newAttempts
+            }
+          }
         }
       }
     };

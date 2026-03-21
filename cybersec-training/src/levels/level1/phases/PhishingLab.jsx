@@ -8,16 +8,20 @@ export default function PhishingLab() {
     user,
     progress,
     setProgress,
-    nextPhase
+    nextPhase,
+    currentLevel
   } = useMission();
+
+  const levelId = currentLevel.id;
 
   const [score, setScore] = useState(null);
   const [locked, setLocked] = useState(false);
 
-  // ✅ NEW: consistent tracking
+  // ✅ tracking
   const startTimeRef = useRef(Date.now());
+
   const [attempts, setAttempts] = useState(
-    progress?.phases?.phishing?.attempts || 0
+    progress?.levels?.[levelId]?.phases?.phishing?.attempts || 0
   );
 
   // ✅ HANDLE CORRECT
@@ -42,14 +46,19 @@ export default function PhishingLab() {
 
     const updatedProgress = {
       ...progress,
-      phases: {
-        ...(progress.phases || {}),
-        phishing: {
-          completed: true,
-          correct: true,
-          attempts: newAttempts,
-          timeTaken,
-          score: finalScore
+      levels: {
+        ...(progress.levels || {}),
+        [levelId]: {
+          phases: {
+            ...(progress.levels?.[levelId]?.phases || {}),
+            phishing: {
+              completed: true,
+              correct: true,
+              attempts: newAttempts,
+              timeTaken,
+              score: finalScore
+            }
+          }
         }
       }
     };
@@ -64,7 +73,6 @@ export default function PhishingLab() {
       progress: updatedProgress
     });
 
-    // ⚠️ optional (remove later if fully state-driven)
     setTimeout(() => {
       nextPhase();
     }, 1500);
@@ -81,11 +89,16 @@ export default function PhishingLab() {
 
     const updatedProgress = {
       ...progress,
-      phases: {
-        ...(progress.phases || {}),
-        phishing: {
-          ...(progress.phases?.phishing || {}),
-          attempts: newAttempts
+      levels: {
+        ...(progress.levels || {}),
+        [levelId]: {
+          phases: {
+            ...(progress.levels?.[levelId]?.phases || {}),
+            phishing: {
+              ...(progress.levels?.[levelId]?.phases?.phishing || {}),
+              attempts: newAttempts
+            }
+          }
         }
       }
     };
@@ -128,6 +141,13 @@ http://secure-company-login.com/reset
       <button onClick={handleWrong} disabled={locked}>
         Proper formatting
       </button>
+
+      {/* ✅ Optional feedback */}
+      {score !== null && (
+        <p style={{ marginTop: "10px", color: "#00ff9f" }}>
+          ✅ Score: {score}
+        </p>
+      )}
     </div>
   );
 }

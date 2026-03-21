@@ -6,8 +6,6 @@ export default function InstructorDashboard() {
   const [students, setStudents] = useState({});
 
   useEffect(() => {
-
-    // ✅ request data immediately
     socket.emit("get_dashboard");
 
     socket.on("dashboard_update", (data) => {
@@ -24,22 +22,49 @@ export default function InstructorDashboard() {
     return "red";
   };
 
-  const getTotalScore = (progress) =>
-    Object.values(progress?.phases || {}).reduce(
+  // ✅ 🔥 NEW: flatten ALL levels into one phases object
+  const getAllPhases = (progress) => {
+    if (!progress?.levels) return {};
+
+    return Object.values(progress.levels).reduce((acc, level) => {
+      return {
+        ...acc,
+        ...(level.phases || {})
+      };
+    }, {});
+  };
+
+  // ✅ UPDATED
+  const getTotalScore = (progress) => {
+    const phases = getAllPhases(progress);
+
+    return Object.values(phases).reduce(
       (sum, p) => sum + (p.score || 0),
       0
     );
+  };
 
-  const getTotalTime = (progress) =>
-    Object.values(progress?.phases || {}).reduce(
+  // ✅ UPDATED
+  const getTotalTime = (progress) => {
+    const phases = getAllPhases(progress);
+
+    return Object.values(phases).reduce(
       (sum, p) => sum + (p.timeTaken || 0),
       0
     );
+  };
 
+  // ✅ UPDATED
   const getProgress = (progress) => {
-    const phases = Object.values(progress?.phases || {});
-    const completed = phases.filter(p => p.completed).length;
-    return Math.round((completed / 5) * 100);
+    const phases = getAllPhases(progress);
+
+    const completed = Object.values(phases).filter(
+      (p) => p.completed
+    ).length;
+
+    const total = Object.keys(phases).length || 1;
+
+    return Math.round((completed / total) * 100);
   };
 
   const getGrade = (score) => {
@@ -73,9 +98,9 @@ export default function InstructorDashboard() {
   // 🏆 Podium reorder
   const rawTopThree = leaderboard.slice(0, 3);
   const topThree = [
-    rawTopThree[1], // 🥈
-    rawTopThree[0], // 🥇
-    rawTopThree[2]  // 🥉
+    rawTopThree[1],
+    rawTopThree[0],
+    rawTopThree[2]
   ].filter(Boolean);
 
   const rest = leaderboard.slice(3);

@@ -1,0 +1,74 @@
+{
+  "Godzilla": {
+    "name": "Godzilla",
+    "currentPhase": "incident",
+    "progress": {
+      "phases": {
+        "phishing": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1,
+          "timeTaken": 1,
+          "score": 130
+        },
+        "password": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1
+        },
+        "network": {
+          "completed": true,
+          "correct": true,
+          "attempts": 2
+        },
+        "logs": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1
+        },
+        "incident": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1
+        }
+      }
+    },
+    "lastActive": 1774050721634
+  },
+  "WannaCry": {
+    "name": "WannaCry",
+    "currentPhase": "incident",
+    "progress": {
+      "phases": {
+        "phishing": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1,
+          "timeTaken": 2,
+          "score": 129
+        },
+        "password": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1
+        },
+        "network": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1
+        },
+        "logs": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1
+        },
+        "incident": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1
+        }
+      }
+    },
+    "lastActive": 1774050909774
+  }
+}

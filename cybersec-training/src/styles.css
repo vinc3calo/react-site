@@ -1,0 +1,13 @@
+body {
+  background-color: #1b1f24;
+  color: #e5e5e5;
+  font-family: Arial;
+}
+
+button {
+  cursor: pointer;
+}
+
+h1, h2 {
+  color: #4caf50;
+}

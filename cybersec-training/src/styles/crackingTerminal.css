@@ -1,0 +1,35 @@
+.crackLab{
+ max-width:700px;
+}
+
+.crackLab input{
+ width:100%;
+ padding:10px;
+ margin-top:10px;
+}
+
+.crackLab button{
+ margin-top:10px;
+ padding:10px 16px;
+}
+
+.terminal{
+ background:black;
+ color:#00ff00;
+ font-family:monospace;
+ padding:15px;
+ height:300px;
+ overflow-y:auto;
+ border:1px solid #2e3a46;
+ margin-top:15px;
+}
+
+.cracked{
+ margin-top:10px;
+ font-size:18px;
+ color:#4caf50;
+}
+
+.completeLab{
+ margin-top:20px;
+}

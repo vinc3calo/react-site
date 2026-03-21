@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMission } from "../../../context/MissionContext";
 import { socket } from "../../../core/socket";
 
@@ -13,30 +13,72 @@ export default function LogsLab() {
   const [input, setInput] = useState("");
   const [locked, setLocked] = useState(false);
 
+  // ✅ NEW: tracking
+  const startTimeRef = useRef(Date.now());
+  const [attempts, setAttempts] = useState(
+    progress?.phases?.logs?.attempts || 0
+  );
+
   const handleSubmit = () => {
     if (!user || locked) return;
 
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts);
+
     const isCorrect = input.toLowerCase().includes("privilege");
 
+    // ❌ WRONG ANSWER
     if (!isCorrect) {
       alert("Incorrect analysis");
+
+      const updatedProgress = {
+        ...progress,
+        phases: {
+          ...(progress.phases || {}),
+          logs: {
+            ...(progress.phases?.logs || {}),
+            attempts: newAttempts
+          }
+        }
+      };
+
+      setProgress(updatedProgress);
+
+      socket.emit("progress_update", {
+        user: user.name,
+        phase: "logs",
+        progress: updatedProgress
+      });
+
       return;
     }
 
-    setLocked(true); // ✅ prevent double trigger
+    // ✅ CORRECT ANSWER
+    setLocked(true); // prevent double trigger
 
-    const safePhases = progress?.phases || {};
-    const prev = safePhases.logs || {};
+    const timeTaken = Math.floor(
+      (Date.now() - startTimeRef.current) / 1000
+    );
+
+    const basePoints = 100;
+    const attemptPenalty = (newAttempts - 1) * 10;
+    const speedBonus = Math.max(30 - timeTaken, 0);
+
+    const score = Math.max(
+      basePoints - attemptPenalty + speedBonus,
+      0
+    );
 
     const updatedProgress = {
       ...progress,
       phases: {
-        ...safePhases,
+        ...(progress.phases || {}),
         logs: {
-          ...prev,
           completed: true,
           correct: true,
-          attempts: prev.attempts || 1
+          attempts: newAttempts,
+          timeTaken,
+          score
         }
       }
     };
@@ -51,7 +93,7 @@ export default function LogsLab() {
       progress: updatedProgress
     });
 
-    // ✅ move forward (same pattern as others)
+    // ⚠️ optional (remove later if fully state-driven)
     setTimeout(() => {
       nextPhase();
     }, 1000);
@@ -59,7 +101,7 @@ export default function LogsLab() {
 
   return (
     <div className="panel">
-      <h3>Log Investigation</h3>
+      <h3>📜 Log Investigation</h3>
 
       <p>Analyze the logs below:</p>
 

@@ -1,42 +1,29 @@
 {
-  "Godzilla": {
-    "name": "Godzilla",
-    "currentPhase": "incident",
+  "LogPost": {
+    "name": "LogPost",
+    "currentPhase": "password",
     "progress": {
       "phases": {
         "phishing": {
           "completed": true,
           "correct": true,
           "attempts": 1,
-          "timeTaken": 1,
-          "score": 130
+          "timeTaken": 3,
+          "score": 129
         },
         "password": {
           "completed": true,
           "correct": true,
-          "attempts": 1
-        },
-        "network": {
-          "completed": true,
-          "correct": true,
-          "attempts": 2
-        },
-        "logs": {
-          "completed": true,
-          "correct": true,
-          "attempts": 1
-        },
-        "incident": {
-          "completed": true,
-          "correct": true,
-          "attempts": 1
+          "attempts": 1,
+          "timeTaken": 6,
+          "score": 124
         }
       }
     },
-    "lastActive": 1774050721634
+    "lastActive": 1774075759665
   },
-  "WannaCry": {
-    "name": "WannaCry",
+  "CyberStorm": {
+    "name": "CyberStorm",
     "currentPhase": "incident",
     "progress": {
       "phases": {
@@ -50,25 +37,70 @@
         "password": {
           "completed": true,
           "correct": true,
-          "attempts": 1
+          "attempts": 1,
+          "timeTaken": 6,
+          "score": 124
         },
         "network": {
           "completed": true,
           "correct": true,
-          "attempts": 1
+          "attempts": 1,
+          "timeTaken": 4,
+          "score": 126
         },
         "logs": {
           "completed": true,
           "correct": true,
-          "attempts": 1
+          "attempts": 1,
+          "timeTaken": 7,
+          "score": 123
         },
         "incident": {
           "completed": true,
           "correct": true,
-          "attempts": 1
+          "attempts": 1,
+          "timeTaken": 1,
+          "score": 129
         }
       }
     },
-    "lastActive": 1774050909774
+    "lastActive": 1774079172416
+  },
+  "SilentKill": {
+    "name": "SilentKill",
+    "currentPhase": "logs",
+    "progress": {
+      "phases": {
+        "phishing": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1,
+          "timeTaken": 2,
+          "score": 129
+        },
+        "password": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1,
+          "timeTaken": 7,
+          "score": 123
+        },
+        "network": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1,
+          "timeTaken": 4,
+          "score": 126
+        },
+        "logs": {
+          "completed": true,
+          "correct": true,
+          "attempts": 1,
+          "timeTaken": 6,
+          "score": 124
+        }
+      }
+    },
+    "lastActive": 1774075937517
   }
 }

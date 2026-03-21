@@ -39,7 +39,12 @@ if (fs.existsSync(DATA_FILE)) {
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
 
+  
   socket.emit("dashboard_update", students);
+
+  socket.on("get_dashboard", () => {
+    socket.emit("dashboard_update", students);
+  });
 
   socket.on("progress_update", (data) => {
     const { user, phase, progress } = data;

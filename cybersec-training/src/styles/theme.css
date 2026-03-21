@@ -150,3 +150,25 @@ li {
   margin: 5px 0;
   color:white;
 }
+
+
+.mission-complete {
+  text-align: center;
+  padding: 40px;
+  color: #00ff9f;
+}
+
+.summary {
+  margin: 20px 0;
+  font-size: 18px;
+}
+
+.mission-complete button {
+  padding: 12px 20px;
+  font-size: 16px;
+  background: #00ff9f;
+  color: black;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}

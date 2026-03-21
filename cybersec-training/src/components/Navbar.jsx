@@ -21,7 +21,7 @@ export default function Navbar() {
         </Link>
 
         <Link to="/dashboard" className={getClass('/dashboard')}>
-          Instructor
+          Leaderboard
         </Link>
       </div>
     </div>

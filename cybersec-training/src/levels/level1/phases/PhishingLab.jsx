@@ -1,6 +1,6 @@
 import { useMission } from "../../../context/MissionContext";
 import { socket } from "../../../core/socket";
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import { calculateScore } from "../../../utils/calculateScore";
 
 export default function PhishingLab() {
@@ -11,79 +11,81 @@ export default function PhishingLab() {
     nextPhase
   } = useMission();
 
-  const [startTime, setStartTime] = useState(null);
   const [score, setScore] = useState(null);
-  const [locked, setLocked] = useState(false); // ✅ PREVENT DOUBLE TRIGGER
+  const [locked, setLocked] = useState(false);
 
-  // ✅ Start timer
-  useEffect(() => {
-    setStartTime(Date.now());
-  }, []);
+  // ✅ NEW: consistent tracking
+  const startTimeRef = useRef(Date.now());
+  const [attempts, setAttempts] = useState(
+    progress?.phases?.phishing?.attempts || 0
+  );
 
   // ✅ HANDLE CORRECT
   const handleCorrect = () => {
-    if (!user || locked) return; // ✅ BLOCK MULTIPLE CALLS
+    if (!user || locked) return;
 
-    setLocked(true); // ✅ LOCK IMMEDIATELY
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts);
+    setLocked(true);
 
-    const safePhases = progress?.phases || {};
-    const prevPhase = safePhases.phishing || {};
+    const timeTaken = Math.floor(
+      (Date.now() - startTimeRef.current) / 1000
+    );
 
-    const attempts = prevPhase.attempts || 1;
-
-    const safeStart = startTime || Date.now();
-    const timeTaken = Math.floor((Date.now() - safeStart) / 1000);
-
-    const finalScore = calculateScore("phishing", attempts, timeTaken);
+    const finalScore = calculateScore(
+      "phishing",
+      newAttempts,
+      timeTaken
+    );
 
     setScore(finalScore);
 
     const updatedProgress = {
       ...progress,
       phases: {
-        ...safePhases,
+        ...(progress.phases || {}),
         phishing: {
           completed: true,
           correct: true,
-          attempts,
+          attempts: newAttempts,
           timeTaken,
           score: finalScore
         }
       }
     };
 
-    // ✅ Update state
+    // ✅ update frontend
     setProgress(updatedProgress);
 
-    // ✅ Sync backend
+    // ✅ sync backend
     socket.emit("progress_update", {
       user: user.name,
       phase: "phishing",
       progress: updatedProgress
     });
 
-    // ✅ Move to next phase ONCE
+    // ⚠️ optional (remove later if fully state-driven)
     setTimeout(() => {
       nextPhase();
     }, 1500);
   };
 
-  // ✅ HANDLE WRONG
+  // ❌ HANDLE WRONG
   const handleWrong = () => {
     if (!user || locked) return;
 
-    alert("Incorrect");
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts);
 
-    const safePhases = progress?.phases || {};
-    const prevPhase = safePhases.phishing || {};
+    alert("Incorrect");
 
     const updatedProgress = {
       ...progress,
       phases: {
-        ...safePhases,
+        ...(progress.phases || {}),
         phishing: {
-          ...prevPhase,
-          attempts: (prevPhase.attempts || 0) + 1
+          ...(progress.phases?.phishing || {}),
+          attempts: newAttempts
         }
       }
     };
@@ -99,7 +101,7 @@ export default function PhishingLab() {
 
   return (
     <div className="panel">
-      <h3>Phishing Analysis</h3>
+      <h3>📧 Phishing Analysis</h3>
 
       <p>
         An employee received the following email. Identify the suspicious element.
@@ -126,13 +128,6 @@ http://secure-company-login.com/reset
       <button onClick={handleWrong} disabled={locked}>
         Proper formatting
       </button>
-
-      {/* ✅ Score Feedback */}
-      {score !== null && (
-        <div style={{ marginTop: "15px", fontWeight: "bold", color: "#4caf50" }}>
-          ✅ Correct! Score: {score}
-        </div>
-      )}
     </div>
   );
 }

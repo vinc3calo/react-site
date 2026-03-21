@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMission } from "../../../context/MissionContext";
 import { socket } from "../../../core/socket";
 
@@ -12,23 +12,43 @@ export default function ResponseLab() {
 
   const [locked, setLocked] = useState(false);
 
+  // ✅ NEW: tracking
+  const startTimeRef = useRef(Date.now());
+  const [attempts, setAttempts] = useState(
+    progress?.phases?.incident?.attempts || 0
+  );
+
   const handleCorrect = () => {
     if (!user || locked) return;
 
-    setLocked(true); // ✅ prevent double trigger
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts);
 
-    const safePhases = progress?.phases || {};
-    const prev = safePhases.incident || {};
+    setLocked(true); // prevent double trigger
+
+    const timeTaken = Math.floor(
+      (Date.now() - startTimeRef.current) / 1000
+    );
+
+    const basePoints = 100;
+    const attemptPenalty = (newAttempts - 1) * 10;
+    const speedBonus = Math.max(30 - timeTaken, 0);
+
+    const score = Math.max(
+      basePoints - attemptPenalty + speedBonus,
+      0
+    );
 
     const updatedProgress = {
       ...progress,
       phases: {
-        ...safePhases,
+        ...(progress.phases || {}),
         incident: {
-          ...prev,
           completed: true,
           correct: true,
-          attempts: prev.attempts || 1
+          attempts: newAttempts,
+          timeTaken,
+          score
         }
       }
     };
@@ -43,7 +63,7 @@ export default function ResponseLab() {
       progress: updatedProgress
     });
 
-    // ✅ move to next phase
+    // ⚠️ optional (remove later if fully state-driven)
     setTimeout(() => {
       nextPhase();
     }, 1000);
@@ -51,12 +71,35 @@ export default function ResponseLab() {
 
   const handleWrong = () => {
     if (locked) return;
+
+    const newAttempts = attempts + 1;
+    setAttempts(newAttempts);
+
     alert("Incorrect");
+
+    const updatedProgress = {
+      ...progress,
+      phases: {
+        ...(progress.phases || {}),
+        incident: {
+          ...(progress.phases?.incident || {}),
+          attempts: newAttempts
+        }
+      }
+    };
+
+    setProgress(updatedProgress);
+
+    socket.emit("progress_update", {
+      user: user.name,
+      phase: "incident",
+      progress: updatedProgress
+    });
   };
 
   return (
     <div className="panel">
-      <h3>Incident Response</h3>
+      <h3>🚨 Incident Response</h3>
 
       <p>What is the FIRST action you should take?</p>
 

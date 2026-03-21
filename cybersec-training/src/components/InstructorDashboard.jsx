@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { socket } from "../core/socket";
+import "../styles/leaderboard.css";
 
 export default function InstructorDashboard() {
   const [students, setStudents] = useState({});
 
   useEffect(() => {
+
+    // ✅ request data immediately
+    socket.emit("get_dashboard");
+
     socket.on("dashboard_update", (data) => {
       setStudents(data);
     });
@@ -14,51 +19,134 @@ export default function InstructorDashboard() {
 
   const getStatusColor = (lastActive) => {
     const diff = (Date.now() - new Date(lastActive)) / 1000;
-
-    if (diff < 10) return "#00ff9f"; // active
-    if (diff < 30) return "orange";  // idle
-    return "red";                   // inactive
+    if (diff < 10) return "#00ff9f";
+    if (diff < 30) return "orange";
+    return "red";
   };
+
+  const getTotalScore = (progress) =>
+    Object.values(progress?.phases || {}).reduce(
+      (sum, p) => sum + (p.score || 0),
+      0
+    );
+
+  const getTotalTime = (progress) =>
+    Object.values(progress?.phases || {}).reduce(
+      (sum, p) => sum + (p.timeTaken || 0),
+      0
+    );
+
+  const getProgress = (progress) => {
+    const phases = Object.values(progress?.phases || {});
+    const completed = phases.filter(p => p.completed).length;
+    return Math.round((completed / 5) * 100);
+  };
+
+  const getGrade = (score) => {
+    if (score >= 450) return "A";
+    if (score >= 350) return "B";
+    if (score >= 250) return "C";
+    return "D";
+  };
+
+  // 🔥 Build leaderboard
+  const leaderboard = Object.values(students)
+    .map((student) => {
+      const totalScore = getTotalScore(student.progress);
+      const totalTime = getTotalTime(student.progress);
+
+      return {
+        ...student,
+        totalScore,
+        totalTime,
+        progressPercent: getProgress(student.progress),
+        grade: getGrade(totalScore)
+      };
+    })
+    .sort((a, b) => {
+      if (b.totalScore !== a.totalScore) {
+        return b.totalScore - a.totalScore;
+      }
+      return a.totalTime - b.totalTime;
+    });
+
+  // 🏆 Podium reorder
+  const rawTopThree = leaderboard.slice(0, 3);
+  const topThree = [
+    rawTopThree[1], // 🥈
+    rawTopThree[0], // 🥇
+    rawTopThree[2]  // 🥉
+  ].filter(Boolean);
+
+  const rest = leaderboard.slice(3);
+
+  const medals = ["🥈", "🥇", "🥉"];
 
   return (
     <div className="dashboard">
-      <h2>👨‍🏫 Instructor Command Dashboard</h2>
+      <h2>👨‍🏫 Leaderboard</h2>
 
-      {Object.keys(students).length === 0 && (
-        <p>No active operators...</p>
-      )}
+      {/* 🏆 PODIUM */}
+      <div className="podium">
+        {topThree.map((student, index) => (
+          <div className={`podium-card pos-${index}`} key={student.name}>
+            <div className="medal">{medals[index]}</div>
 
-      <div className="grid">
-        {Object.entries(students).map(([name, data]) => (
-          <div className="card" key={name}>
-            <h3>{data.name}</h3>
+            <div className="avatar">
+              {student.name.charAt(0).toUpperCase()}
+            </div>
 
-            <p>
+            <h3>{student.name}</h3>
+            <p className="grade">{student.grade}</p>
+
+            <p>Score: {student.totalScore}</p>
+            <p>Time: {student.totalTime}s</p>
+
+            <div>
               Status:
               <span
                 style={{
-                  color: getStatusColor(data.lastActive),
+                  color: getStatusColor(student.lastActive),
                   marginLeft: "5px"
                 }}
               >
                 ●
               </span>
-            </p>
-
-            <p>Phase: {data.currentPhase}</p>
-
-            <p>
-              Last Active:
-              {new Date(data.lastActive).toLocaleTimeString()}
-            </p>
-
-            {/* 🔥 SCORE */}
-            <p>
-              Score: <strong>{data.score || 0}</strong>
-            </p>
+            </div>
           </div>
         ))}
       </div>
+
+      {/* 📊 TABLE */}
+      <table className="leaderboard-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Name</th>
+            <th>Score</th>
+            <th>Time</th>
+            <th>Progress</th>
+            <th>Grade</th>
+            <th>Last Active</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {rest.map((student, index) => (
+            <tr key={student.name}>
+              <td>{index + 4}</td>
+              <td>{student.name}</td>
+              <td>{student.totalScore}</td>
+              <td>{student.totalTime}s</td>
+              <td>{student.progressPercent}%</td>
+              <td>{student.grade}</td>
+              <td>
+                {new Date(student.lastActive).toLocaleTimeString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

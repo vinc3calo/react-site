@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useMission } from '../../../context/MissionContext';
 import { socket } from '../../../core/socket';
 
@@ -7,7 +7,7 @@ export default function PasswordLab() {
     user,
     progress,
     setProgress,
-    nextPhase
+    nextPhase // you can remove later if fully state-driven
   } = useMission();
 
   const [hash] = useState('5f4dcc3b5aa765d61d8327deb882cf99');
@@ -25,6 +25,10 @@ export default function PasswordLab() {
 
   const [feedback, setFeedback] = useState('');
 
+  // ✅ NEW: tracking
+  const startTimeRef = useRef(null);
+  const [attempts, setAttempts] = useState(0);
+
   const startCracking = async () => {
     setRunning(true);
     setLogs('');
@@ -32,6 +36,10 @@ export default function PasswordLab() {
     setShowContinue(false);
     setAnswers({ attack: '', implication: '', action: '' });
     setFeedback('');
+
+    // ✅ start timer + attempts
+    startTimeRef.current = Date.now();
+    setAttempts(prev => prev + 1);
 
     const response = await fetch(`http://localhost:4000/crack-stream?hash=${hash}`);
     const reader = response.body.getReader();
@@ -94,16 +102,28 @@ export default function PasswordLab() {
       return;
     }
 
-    // 🔥 FIX STARTS HERE
+    // ✅ CALCULATE TIME
+    const timeTaken = startTimeRef.current
+      ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+      : 0;
+
+    // ✅ SCORING SYSTEM
+    const basePoints = 100;
+    const attemptPenalty = (attempts - 1) * 10;
+    const speedBonus = Math.max(30 - timeTaken, 0);
+
+    const score = Math.max(basePoints - attemptPenalty + speedBonus, 0);
 
     const updatedProgress = {
       ...progress,
       phases: {
-        ...progress.phases,
+        ...(progress.phases || {}),
         password: {
           completed: true,
           correct: true,
-          attempts: 1
+          attempts,
+          timeTaken,
+          score
         }
       }
     };
@@ -118,7 +138,7 @@ export default function PasswordLab() {
       progress: updatedProgress
     });
 
-    // ✅ go to next phase
+    // ⚠️ optional (remove later if fully state-driven)
     nextPhase();
   };
 

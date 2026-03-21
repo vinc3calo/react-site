@@ -39,7 +39,7 @@ export default function MissionComplete({ level }) {
       </div>
 
       <button onClick={handleNextLevel}>
-        Proceed to Level 2 →
+        Proceed to Level 2
       </button>
     </div>
   );

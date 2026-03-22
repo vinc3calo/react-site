@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState } from "react";
 
 const MissionContext = createContext();
 
@@ -6,27 +6,43 @@ export function MissionProvider({ children }) {
   const [currentLevel, setCurrentLevel] = useState(null);
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [currentPhase, setCurrentPhase] = useState(null);
+
+  // ✅ FIXED STRUCTURE (matches MissionEngine expectations)
   const [progress, setProgress] = useState({
-    phases: {}
+    levels: {},
+    meta: {}
   });
+
   const [user, setUser] = useState(null);
+
+  // ✅ MUST start as false (prevents skipping briefing)
   const [missionStarted, setMissionStarted] = useState(false);
 
-  
-
-  const updatePhaseProgress = (phaseId, data) => {
+  // ===============================
+  // 🧠 UPDATE PHASE PROGRESS (LEVEL-AWARE)
+  // ===============================
+  const updatePhaseProgress = (levelId, phaseId, data) => {
     setProgress((prev) => ({
       ...prev,
-      phases: {
-        ...prev.phases,
-        [phaseId]: {
-          ...prev.phases[phaseId],
-          ...data
+      levels: {
+        ...prev.levels,
+        [levelId]: {
+          ...(prev.levels[levelId] || { phases: {} }),
+          phases: {
+            ...(prev.levels[levelId]?.phases || {}),
+            [phaseId]: {
+              ...(prev.levels[levelId]?.phases?.[phaseId] || {}),
+              ...data
+            }
+          }
         }
       }
     }));
   };
 
+  // ===============================
+  // 🔄 PHASE NAVIGATION
+  // ===============================
   const nextPhase = () => {
     setCurrentPhaseIndex((prev) => prev + 1);
   };
@@ -36,18 +52,24 @@ export function MissionProvider({ children }) {
       value={{
         currentLevel,
         setCurrentLevel,
+
         currentPhaseIndex,
-        setCurrentPhaseIndex,   // ✅ ADD THIS
+        setCurrentPhaseIndex,
         nextPhase,
+
         progress,
         setProgress,
+
         missionStarted,
+        setMissionStarted,
+
         user,
         setUser,
+
         updatePhaseProgress,
-        setMissionStarted,
-        currentPhase,         // ✅ ADD THIS
-        setCurrentPhase       // ✅ ADD THIS
+
+        currentPhase,
+        setCurrentPhase
       }}
     >
       {children}

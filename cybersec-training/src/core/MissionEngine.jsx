@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useMission } from "../context/MissionContext";
+import { socket } from "../core/socket";
 
 import { level1 } from "../levels/level1";
 import { level2 } from "../levels/level2";
@@ -18,6 +19,7 @@ export default function MissionEngine({ levelId, setLevelId }) {
     currentLevel,
     setCurrentLevel,
     missionStarted,
+    setMissionStarted,
     progress,
     setProgress
   } = useMission();
@@ -29,110 +31,101 @@ export default function MissionEngine({ levelId, setLevelId }) {
 
   const selectedLevel = levelMap[levelId];
 
+  // 🔄 Sync level
   useEffect(() => {
     if (selectedLevel && currentLevel?.id !== selectedLevel.id) {
       setCurrentLevel(selectedLevel);
     }
   }, [levelId, selectedLevel, currentLevel, setCurrentLevel]);
 
-  if (!user) {
-    return <StartScreen />;
-  }
+  // ===============================
+  // 🧠 SAFE PROGRESS (ALWAYS RUN)
+  // ===============================
+  const safeProgress = migrateProgress(progress, selectedLevel?.id);
 
-  if (!selectedLevel) {
-    return (
-      <div>
-        <h2>Level: {levelId}</h2>
-        <p>⚠️ This level is not implemented yet.</p>
-      </div>
-    );
-  }
-
-  if (!currentLevel) {
-    return <div>Loading mission...</div>;
-  }
-
-  const safeProgress = migrateProgress(progress, selectedLevel.id);
-
-  const levelProgress = safeProgress.levels?.[selectedLevel.id] || {
+  const levelProgress = safeProgress?.levels?.[selectedLevel?.id] || {
     phases: {}
   };
 
-  const activePhaseId = getActivePhase(
-    selectedLevel.phases,
-    levelProgress
-  );
+  // ✅ ALWAYS call hooks (no conditional)
+  const activePhaseId = useMemo(() => {
+    if (!selectedLevel) return null;
+    return getActivePhase(selectedLevel.phases, levelProgress);
+  }, [selectedLevel, levelProgress]);
 
-  // ✅ GENERIC LEVEL COMPLETION CHECK
-  function isLevelComplete(progress, level) {
-    const progressPhases =
-      progress?.levels?.[level.id]?.phases || {};
+  const levelHasProgress =
+    levelProgress?.phases &&
+    Object.keys(levelProgress.phases).length > 0;
 
-    const requiredPhases = level.phases.map((p) => p.id);
+  const isLevelComplete =
+    selectedLevel?.phases?.every(
+      (p) => levelProgress.phases[p.id]?.completed === true
+    ) || false;
 
-    return requiredPhases.every(
-      (phaseId) => progressPhases[phaseId]?.completed === true
-    );
+  // ===============================
+  // 🚫 EARLY RETURNS (AFTER HOOKS)
+  // ===============================
+
+  if (!user) return <StartScreen />;
+
+  if (!selectedLevel) {
+    return <div>Invalid level</div>;
   }
 
-  // ✅ HANDLE LEVEL COMPLETION
-  if (activePhaseId === "completed") {
-    const unlocked = isLevelComplete(safeProgress, selectedLevel);
+  // 🛑 WAIT FOR SYNC
+  if (!currentLevel || currentLevel.id !== selectedLevel.id) {
+    return <div>Loading mission...</div>;
+  }
 
+  // ===============================
+  // 🎖️ BRIEFING
+  // ===============================
+  if (!missionStarted && !levelHasProgress) {
+    return <MissionBriefing levelId={levelId} />;
+  }
+
+  // ===============================
+  // 🏁 COMPLETION
+  // ===============================
+  if (isLevelComplete) {
     return (
       <MissionComplete
         level={selectedLevel}
-        unlocked={unlocked}
-        onContinue={
-          unlocked
-            ? () => {
-                const nextLevelId = "operation_shadow_escalation";
+        unlocked={true}
+        onContinue={() => {
+          const nextLevelId = "operation_shadow_escalation";
 
-                const updatedProgress = {
-                  ...progress,
-                  meta: {
-                    ...(progress.meta || {}),
-                    currentLevel: nextLevelId
-                  }
-                };
+          const updatedProgress = {
+            levels: safeProgress.levels || {},
+            meta: {
+              ...(safeProgress.meta || {}),
+              currentLevel: nextLevelId
+            }
+          };
 
-                setProgress(updatedProgress);
-                setLevelId(nextLevelId);
-              }
-            : null
-        }
+          setProgress(updatedProgress);
+          setLevelId(nextLevelId);
+          setMissionStarted(false);
+
+          socket.emit("progress_update", {
+            user: user.name,
+            phase: "level_complete",
+            progress: updatedProgress
+          });
+        }}
       />
     );
   }
 
+  // ===============================
+  // 🎯 PHASE
+  // ===============================
   const phase = selectedLevel.phases.find(
     (p) => p.id === activePhaseId
   );
 
   if (!phase) {
-    return (
-      <div>
-        <h2>{selectedLevel.title}</h2>
-        <p>⚠️ Phase not found.</p>
-      </div>
-    );
-  }
-
-  if (!missionStarted && progress) {
-    return (
-      <div>
-        <h2>{selectedLevel.title}</h2>
-        <p style={{ fontSize: "0.8em" }}>
-          Operator: {user.name}
-        </p>
-
-        <PhaseRenderer phase={phase} />
-      </div>
-    );
-  }
-
-  if (!missionStarted) {
-    return <MissionBriefing />;
+    return <div>Phase not found</div>;
   }
 
   return (
@@ -142,7 +135,7 @@ export default function MissionEngine({ levelId, setLevelId }) {
         Operator: {user.name}
       </p>
 
-      <PhaseRenderer phase={phase} />
+      <PhaseRenderer phase={phase} levelId={levelId} />
     </div>
   );
 }

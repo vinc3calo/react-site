@@ -13,6 +13,61 @@ app.use(cors());
 const db = await initDB();
 
 /* ================================
+   🎯 MISSIONS TABLE (NEW)
+================================ */
+
+// ✅ Create missions table
+await db.exec(`
+  CREATE TABLE IF NOT EXISTS missions (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    description TEXT,
+    objectives TEXT
+  )
+`);
+
+// ✅ Seed missions if not exists
+async function seedMissions() {
+  const existing = await db.all("SELECT id FROM missions");
+
+  if (existing.length > 0) return;
+
+  console.log("🌱 Seeding missions...");
+
+  await db.run(
+    `INSERT INTO missions VALUES (?, ?, ?, ?)`,
+    [
+      "operation_shadow_entry",
+      "Operation Shadow Entry",
+      "Infiltrate the target system, identify vulnerabilities, and secure the environment.",
+      JSON.stringify([
+        "Gain initial access",
+        "Enumerate the system",
+        "Identify vulnerabilities",
+        "Secure the system"
+      ])
+    ]
+  );
+
+  await db.run(
+    `INSERT INTO missions VALUES (?, ?, ?, ?)`,
+    [
+      "operation_shadow_escalation",
+      "Operation Shadow Escalation",
+      "You have gained access. Now escalate privileges and maintain persistence.",
+      JSON.stringify([
+        "Identify privilege escalation vectors",
+        "Exploit system weaknesses",
+        "Gain administrative access",
+        "Establish persistence"
+      ])
+    ]
+  );
+}
+
+await seedMissions();
+
+/* ================================
    🔌 SOCKET.IO SETUP
 ================================ */
 
@@ -70,11 +125,9 @@ io.on("connection", (socket) => {
     socket.emit("dashboard_update", students);
   });
 
-
   socket.on("progress_update", async (data) => {
     const { user, phase, progress } = data || {};
 
-    // 🔥 ignore bad events completely
     if (!user || typeof user !== "string" || !progress) {
       return;
     }
@@ -96,7 +149,6 @@ io.on("connection", (socket) => {
     io.emit("dashboard_update", students);
   });
 
-  
   socket.on("disconnect", () => {
     console.log("Disconnected:", socket.id);
   });
@@ -208,6 +260,30 @@ app.get("/student/:name", async (req, res) => {
 
   res.json({
     progress: student.progress
+  });
+});
+
+/* ================================
+   🎯 MISSION API (NOW FROM DB)
+================================ */
+
+app.get("/mission/:id", async (req, res) => {
+  const { id } = req.params;
+
+  const mission = await db.get(
+    "SELECT * FROM missions WHERE id = ?",
+    [id]
+  );
+
+  if (!mission) {
+    return res.status(404).json(null);
+  }
+
+  res.json({
+    id: mission.id,
+    title: mission.title,
+    description: mission.description,
+    objectives: JSON.parse(mission.objectives)
   });
 });
 

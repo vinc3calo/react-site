@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useMission } from "../../../context/MissionContext";
-import { socket } from '../../../core/socket';
+import { socket } from "../../../core/socket";
 
-export default function IntrusionLab() {
-  const { progress, setProgress, currentLevel, user } = useMission();
+export default function IntrusionLab({ levelId }) {
+  const { progress, setProgress, user } = useMission();
 
-  const levelId = currentLevel.id;
   const phaseId = "intrusion";
 
   const [selectedIP, setSelectedIP] = useState(null);
@@ -16,7 +15,7 @@ export default function IntrusionLab() {
   const logs = [
     { ip: "192.168.1.10", time: "08:00" },
     { ip: "192.168.1.10", time: "09:00" },
-    { ip: "45.33.21.90", time: "03:12" }, // suspicious
+    { ip: "45.33.21.90", time: "03:12" },
     { ip: "192.168.1.10", time: "10:00" }
   ];
 
@@ -36,11 +35,12 @@ export default function IntrusionLab() {
       setCompleted(true);
     }
 
+    // 🔥 CRITICAL FIX — PRESERVE FULL STRUCTURE
     const updatedProgress = {
-      ...progress,
       levels: {
         ...(progress.levels || {}),
         [levelId]: {
+          ...(progress.levels?.[levelId] || { phases: {} }),
           phases: {
             ...(progress.levels?.[levelId]?.phases || {}),
             [phaseId]: {
@@ -52,13 +52,16 @@ export default function IntrusionLab() {
             }
           }
         }
+      },
+      meta: {
+        ...(progress.meta || {})
       }
     };
 
-    // ✅ update local state
+    console.log("📡 Saving phase progress:", updatedProgress);
+
     setProgress(updatedProgress);
 
-    // 🔥 CRITICAL FIX: send to backend
     socket.emit("progress_update", {
       user: user.name,
       phase: phaseId,

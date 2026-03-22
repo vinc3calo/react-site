@@ -11,20 +11,21 @@ import InstructorDashboard from "../components/InstructorDashboard";
 
 function AppContent() {
   const loading = useRestoreSession();
-
   const { progress } = useMission();
 
   const [currentLevel, setCurrentLevel] = useState(null);
 
-  // ✅ RESTORE LEVEL FROM PROGRESS
+  // ✅ FIX: wait until loading is done
   useEffect(() => {
-    if (progress?.meta?.currentLevel) {
-      setCurrentLevel(progress.meta.currentLevel);
-    } else {
-      setCurrentLevel("operation_shadow_entry");
-    }
-  }, [progress]);
+    if (loading) return;
 
+    setCurrentLevel(
+      progress?.meta?.currentLevel ||
+      "operation_shadow_entry"
+    );
+  }, [loading, progress]);
+
+  // ✅ LOADING STATE
   if (loading || !currentLevel) {
     return <div>Resuming operation...</div>;
   }

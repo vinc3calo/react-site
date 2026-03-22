@@ -4,7 +4,13 @@ import { useMission } from "../context/MissionContext";
 import { socket } from "../core/socket";
 
 export const useRestoreSession = () => {
-  const { setUser, setProgress, setCurrentPhase } = useMission();
+  const {
+    setUser,
+    setProgress,
+    setCurrentPhase,
+    setMissionStarted
+  } = useMission();
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,31 +23,55 @@ export const useRestoreSession = () => {
 
     const restore = async () => {
       try {
-        const res = await axios.get(`http://localhost:4000/student/${name}`);
+        const res = await axios.get(
+          `http://localhost:4000/student/${name}`
+        );
+
         const student = res.data;
 
         console.log("🔄 Restoring:", student);
 
+        // ✅ SET USER
         setUser({ name });
+
+        // ✅ SAFE PROGRESS STRUCTURE
         const safeProgress =
           student.progress &&
-          typeof student.progress === "object" &&
-          student.progress.phases
-            ? student.progress
-            : { phases: {} };
+          typeof student.progress === "object"
+            ? {
+                levels: student.progress.levels || {},
+                meta: student.progress.meta || {}
+              }
+            : {
+                levels: {},
+                meta: {}
+              };
 
         setProgress(safeProgress);
-        setCurrentPhase(student.currentPhase || null);
 
+        // ✅ RESTORE CURRENT PHASE
+        const restoredPhase =
+          safeProgress.meta?.currentPhase || null;
+
+        setCurrentPhase(restoredPhase);
+
+        // 🔥 SMART MISSION START LOGIC
+        // If user has a saved phase → resume mission
+        if (restoredPhase) {
+          setMissionStarted(true);
+        } else {
+          setMissionStarted(false);
+        }
+
+        // ✅ SYNC SOCKET (FULL STATE)
         socket.emit("progress_update", {
-          user: student.name,
-          phase: student.currentPhase,
-          progress: student.progress
+          user: name,
+          phase: restoredPhase,
+          progress: safeProgress
         });
 
       } catch (err) {
         console.log("No saved session");
-        // ✅ DO NOTHING (like your original)
       } finally {
         setLoading(false);
       }

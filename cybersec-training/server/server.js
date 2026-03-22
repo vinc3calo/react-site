@@ -4,9 +4,13 @@ import { spawn } from "child_process";
 import fs from "fs";
 import http from "http";
 import { Server } from "socket.io";
+import { initDB } from "./db.js";
+import { saveStudentProgress, getStudent } from "./studentService.js";
 
 const app = express();
 app.use(cors());
+
+const db = await initDB();
 
 /* ================================
    🔌 SOCKET.IO SETUP
@@ -20,51 +24,65 @@ const io = new Server(server, {
   }
 });
 
-// 🧠 in-memory student tracking
-const DATA_FILE = "./students.json";
+/* ================================
+   🧠 IN-MEMORY CACHE
+================================ */
 
 let students = {};
 
-// 🔥 Load existing data
-if (fs.existsSync(DATA_FILE)) {
-  try {
-    const raw = fs.readFileSync(DATA_FILE);
-    students = JSON.parse(raw);
-    console.log("Loaded saved student data");
-  } catch (err) {
-    console.error("Failed to load student data", err);
-  }
+/* ================================
+   🔄 LOAD FROM DB
+================================ */
+
+async function loadStudentsFromDB() {
+  const rows = await db.all("SELECT * FROM students");
+
+  rows.forEach((row) => {
+    try {
+      const progress = JSON.parse(row.progress);
+
+      students[row.username] = {
+        name: row.username,
+        currentPhase: progress?.meta?.currentPhase || null,
+        progress,
+        lastActive: Date.now()
+      };
+    } catch (err) {
+      console.error("Bad row:", row);
+    }
+  });
+
+  console.log("✅ Loaded students from SQLite");
 }
+
+await loadStudentsFromDB();
+
+/* ================================
+   🔌 SOCKET
+================================ */
 
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
 
-  
   socket.emit("dashboard_update", students);
 
   socket.on("get_dashboard", () => {
     socket.emit("dashboard_update", students);
   });
 
-  socket.on("progress_update", (data) => {
-    const { user, phase, progress } = data;
 
-    // ✅ FORCE SAFE PROGRESS STRUCTURE
-    let safeProgress;
+  socket.on("progress_update", async (data) => {
+    const { user, phase, progress } = data || {};
 
-    if (
-      progress &&
-      typeof progress === "object" &&
-      progress.phases &&
-      typeof progress.phases === "object"
-    ) {
-      safeProgress = progress;
-    } else {
-      safeProgress = { phases: {} };
+    // 🔥 ignore bad events completely
+    if (!user || typeof user !== "string" || !progress) {
+      return;
     }
 
-    // ✅ PRESERVE EXISTING DATA (IMPORTANT)
-    const existing = students[user] || {};
+    const safeProgress =
+      progress && progress.levels
+        ? progress
+        : { levels: {}, meta: {} };
 
     students[user] = {
       name: user,
@@ -73,13 +91,12 @@ io.on("connection", (socket) => {
       lastActive: Date.now()
     };
 
-    console.log("Progress update:", students);
+    await saveStudentProgress(db, user, safeProgress);
 
     io.emit("dashboard_update", students);
-
-    fs.writeFileSync(DATA_FILE, JSON.stringify(students, null, 2));
   });
 
+  
   socket.on("disconnect", () => {
     console.log("Disconnected:", socket.id);
   });
@@ -100,8 +117,6 @@ app.get("/crack-stream", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
-
-  /* 1️⃣ Check john.pot */
 
   if (fs.existsSync(potFile)) {
     const potData = fs.readFileSync(potFile, "utf8");
@@ -129,11 +144,7 @@ app.get("/crack-stream", (req, res) => {
     }
   }
 
-  /* 2️⃣ Write hash */
-
   fs.writeFileSync(hashFile, hash);
-
-  /* 3️⃣ Run John */
 
   const john = spawn(johnPath, [
     "--format=raw-md5",
@@ -143,26 +154,18 @@ app.get("/crack-stream", (req, res) => {
   ]);
 
   john.stdout.on("data", (data) => {
-    let message = data.toString();
-    message = message.replace(/\x08/g, "");
-
     res.write(`data: ${JSON.stringify({
       type: "log",
-      message
+      message: data.toString()
     })}\n\n`);
   });
 
   john.stderr.on("data", (data) => {
-    let message = data.toString();
-    message = message.replace(/\x08/g, "");
-
     res.write(`data: ${JSON.stringify({
       type: "log",
-      message
+      message: data.toString()
     })}\n\n`);
   });
-
-  /* 4️⃣ Show result */
 
   john.on("close", () => {
     const show = spawn(johnPath, [
@@ -190,20 +193,26 @@ app.get("/crack-stream", (req, res) => {
   });
 });
 
-app.get("/student/:name", (req, res) => {
+/* ================================
+   📡 RESTORE SESSION
+================================ */
+
+app.get("/student/:name", async (req, res) => {
   const { name } = req.params;
 
-  const student = students[name];
+  const student = await getStudent(db, name);
 
   if (!student) {
-    return res.status(404).json({ error: "Student not found" });
+    return res.json({ progress: null });
   }
 
-  res.json(student);
+  res.json({
+    progress: student.progress
+  });
 });
 
 /* ================================
-   🚀 START SERVER
+   🚀 START
 ================================ */
 
 server.listen(4000, () => {

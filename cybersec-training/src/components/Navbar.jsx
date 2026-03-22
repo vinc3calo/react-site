@@ -23,6 +23,7 @@ export default function Navbar() {
         <Link to="/dashboard" className={getClass('/dashboard')}>
           Leaderboard
         </Link>
+
       </div>
     </div>
   );

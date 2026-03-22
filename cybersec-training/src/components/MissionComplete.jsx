@@ -1,11 +1,14 @@
 import { useMission } from "../context/MissionContext";
 
-export default function MissionComplete({ level }) {
-  const { progress, setCurrentLevel } = useMission();
+export default function MissionComplete({
+  level,
+  onContinue,
+  unlocked
+}) {
+  const { progress } = useMission();
 
   const levelId = level.id;
 
-  // ✅ get ONLY current level phases
   const phases = Object.values(
     progress?.levels?.[levelId]?.phases || {}
   );
@@ -27,11 +30,6 @@ export default function MissionComplete({ level }) {
     return "D";
   };
 
-  const handleNextLevel = () => {
-    // ⚠️ temporary (we'll fix properly when adding level2)
-    setCurrentLevel("level2");
-  };
-
   return (
     <div className="mission-complete">
       <h1>🎉 Mission Complete</h1>
@@ -43,9 +41,13 @@ export default function MissionComplete({ level }) {
         <p>Grade: <strong>{getGrade(totalScore)}</strong></p>
       </div>
 
-      <button onClick={handleNextLevel}>
-        Proceed to Level 2 →
-      </button>
+      {unlocked ? (
+        <button onClick={onContinue}>
+          Proceed to Next Mission →
+        </button>
+      ) : (
+        <p>🔒 Next level locked</p>
+      )}
     </div>
   );
 }

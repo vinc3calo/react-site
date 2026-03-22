@@ -1,58 +1,127 @@
-import { useEffect } from 'react';
-import { useMission } from '../context/MissionContext';
-import { level1 } from '../levels/level1';
-import PhaseRenderer from './PhaseRenderer';
-import MissionBriefing from '../components/MissionBriefing';
-import StartScreen from '../components/StartScreen';
+import { useEffect } from "react";
+import { useMission } from "../context/MissionContext";
+
+import { level1 } from "../levels/level1";
+import { level2 } from "../levels/level2";
+
+import PhaseRenderer from "./PhaseRenderer";
+import MissionBriefing from "../components/MissionBriefing";
+import StartScreen from "../components/StartScreen";
 import MissionComplete from "../components/MissionComplete";
+
 import { getActivePhase } from "../utils/getActivePhase";
 import { migrateProgress } from "../utils/migrateProgress";
 
-export default function MissionEngine() {
+export default function MissionEngine({ levelId, setLevelId }) {
   const {
     user,
     currentLevel,
     setCurrentLevel,
     missionStarted,
-    progress
+    progress,
+    setProgress
   } = useMission();
 
+  const levelMap = {
+    operation_shadow_entry: level1,
+    operation_shadow_escalation: level2
+  };
+
+  const selectedLevel = levelMap[levelId];
+
   useEffect(() => {
-    if (!currentLevel) {
-      setCurrentLevel(level1);
+    if (selectedLevel && currentLevel?.id !== selectedLevel.id) {
+      setCurrentLevel(selectedLevel);
     }
-  }, [currentLevel, setCurrentLevel]);
+  }, [levelId, selectedLevel, currentLevel, setCurrentLevel]);
 
   if (!user) {
     return <StartScreen />;
+  }
+
+  if (!selectedLevel) {
+    return (
+      <div>
+        <h2>Level: {levelId}</h2>
+        <p>⚠️ This level is not implemented yet.</p>
+      </div>
+    );
   }
 
   if (!currentLevel) {
     return <div>Loading mission...</div>;
   }
 
-  const safeProgress = migrateProgress(progress, currentLevel.id);
+  const safeProgress = migrateProgress(progress, selectedLevel.id);
 
-  const levelProgress = safeProgress.levels[currentLevel.id];
+  const levelProgress = safeProgress.levels?.[selectedLevel.id] || {
+    phases: {}
+  };
 
   const activePhaseId = getActivePhase(
-    currentLevel.phases,
+    selectedLevel.phases,
     levelProgress
   );
 
-  if (activePhaseId === "completed") {
-    return <MissionComplete level={currentLevel} />;
+  // ✅ GENERIC LEVEL COMPLETION CHECK
+  function isLevelComplete(progress, level) {
+    const progressPhases =
+      progress?.levels?.[level.id]?.phases || {};
+
+    const requiredPhases = level.phases.map((p) => p.id);
+
+    return requiredPhases.every(
+      (phaseId) => progressPhases[phaseId]?.completed === true
+    );
   }
 
-  const phase = currentLevel.phases.find(
+  // ✅ HANDLE LEVEL COMPLETION
+  if (activePhaseId === "completed") {
+    const unlocked = isLevelComplete(safeProgress, selectedLevel);
+
+    return (
+      <MissionComplete
+        level={selectedLevel}
+        unlocked={unlocked}
+        onContinue={
+          unlocked
+            ? () => {
+                const nextLevelId = "operation_shadow_escalation";
+
+                const updatedProgress = {
+                  ...progress,
+                  meta: {
+                    ...(progress.meta || {}),
+                    currentLevel: nextLevelId
+                  }
+                };
+
+                setProgress(updatedProgress);
+                setLevelId(nextLevelId);
+              }
+            : null
+        }
+      />
+    );
+  }
+
+  const phase = selectedLevel.phases.find(
     (p) => p.id === activePhaseId
   );
 
-  // Auto resume
+  if (!phase) {
+    return (
+      <div>
+        <h2>{selectedLevel.title}</h2>
+        <p>⚠️ Phase not found.</p>
+      </div>
+    );
+  }
+
   if (!missionStarted && progress) {
     return (
       <div>
-        <h2>{currentLevel.title}</h2>
+        <h2>{selectedLevel.title}</h2>
         <p style={{ fontSize: "0.8em" }}>
           Operator: {user.name}
         </p>
@@ -68,7 +137,7 @@ export default function MissionEngine() {
 
   return (
     <div>
-      <h2>{currentLevel.title}</h2>
+      <h2>{selectedLevel.title}</h2>
       <p style={{ fontSize: "0.8em" }}>
         Operator: {user.name}
       </p>

@@ -9,57 +9,66 @@ export default function InstructorDashboard() {
     socket.emit("get_dashboard");
 
     socket.on("dashboard_update", (data) => {
-      setStudents(data);
+      setStudents(data || {});
     });
 
     return () => socket.off("dashboard_update");
   }, []);
 
   const getStatusColor = (lastActive) => {
+    if (!lastActive) return "gray";
+
     const diff = (Date.now() - new Date(lastActive)) / 1000;
     if (diff < 10) return "#00ff9f";
     if (diff < 30) return "orange";
     return "red";
   };
 
-  // ✅ 🔥 NEW: flatten ALL levels into one phases object
+  // ✅ SAFE NAME HANDLER (FIX)
+  const getName = (student) => {
+    return student?.name || "Unknown";
+  };
+
+  const getInitial = (student) => {
+    const name = getName(student);
+    return name.charAt(0).toUpperCase();
+  };
+
+  // 🔥 flatten ALL levels into one phases object
   const getAllPhases = (progress) => {
     if (!progress?.levels) return {};
 
     return Object.values(progress.levels).reduce((acc, level) => {
       return {
         ...acc,
-        ...(level.phases || {})
+        ...(level?.phases || {})
       };
     }, {});
   };
 
-  // ✅ UPDATED
   const getTotalScore = (progress) => {
     const phases = getAllPhases(progress);
 
     return Object.values(phases).reduce(
-      (sum, p) => sum + (p.score || 0),
+      (sum, p) => sum + (p?.score || 0),
       0
     );
   };
 
-  // ✅ UPDATED
   const getTotalTime = (progress) => {
     const phases = getAllPhases(progress);
 
     return Object.values(phases).reduce(
-      (sum, p) => sum + (p.timeTaken || 0),
+      (sum, p) => sum + (p?.timeTaken || 0),
       0
     );
   };
 
-  // ✅ UPDATED
   const getProgress = (progress) => {
     const phases = getAllPhases(progress);
 
     const completed = Object.values(phases).filter(
-      (p) => p.completed
+      (p) => p?.completed
     ).length;
 
     const total = Object.keys(phases).length || 1;
@@ -74,14 +83,16 @@ export default function InstructorDashboard() {
     return "D";
   };
 
-  // 🔥 Build leaderboard
-  const leaderboard = Object.values(students)
+  // 🔥 SAFE leaderboard build
+  const leaderboard = Object.values(students || {})
+    .filter((student) => student && student.progress) // ✅ prevent undefined crash
     .map((student) => {
       const totalScore = getTotalScore(student.progress);
       const totalTime = getTotalTime(student.progress);
 
       return {
         ...student,
+        name: getName(student), // ✅ normalize name
         totalScore,
         totalTime,
         progressPercent: getProgress(student.progress),
@@ -118,7 +129,7 @@ export default function InstructorDashboard() {
             <div className="medal">{medals[index]}</div>
 
             <div className="avatar">
-              {student.name.charAt(0).toUpperCase()}
+              {getInitial(student)}
             </div>
 
             <h3>{student.name}</h3>
@@ -166,7 +177,9 @@ export default function InstructorDashboard() {
               <td>{student.progressPercent}%</td>
               <td>{student.grade}</td>
               <td>
-                {new Date(student.lastActive).toLocaleTimeString()}
+                {student.lastActive
+                  ? new Date(student.lastActive).toLocaleTimeString()
+                  : "N/A"}
               </td>
             </tr>
           ))}
